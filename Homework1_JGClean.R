@@ -368,6 +368,9 @@ allTracts.Summary %>%
 
 #Graduated Symbol Map for Total Population
 
+MBTASTOPS_SCALED = MBTASTOPS_CUT
+  mutate (PopPerStop = 
+
 ggplot() + 
   geom_sf(data= st_union(tracts12B), fill="black") +
   geom_sf(data= MBTASTOPS_CUT, aes(size = "Totalpop.inf"), colour="red")
@@ -377,6 +380,8 @@ ggplot() +
 ggplot() + 
   geom_sf(data= st_union(tracts12B), fill="black") +
   geom_sf(data.frame= MBTASTOPS_CUT, aes(size = "Medianrent.inf"), colour="red")
+
+#I feel like we need to make Median Rent a variable in the MBTACut dataframe?
 
 
 #------- Multiple ring buffer---------
@@ -505,12 +510,35 @@ geom_line(
 
 
   
-#---CrimeDataAnalysis
+#----CrimeDataAnalysis----
 
 #Read Crime Data
-#JG Note: I"m writing this myself and pulling from the MBTA Stops wrangling steps. no idea if this is right. 
 
-BOSCRIME <-
-  st_read("Link")
-  mutate(Line = "BOSCRIME") %>%
-  select(NAME, LINE) %>%
+#BOSCRIME_2018 Imported from CSV (In Github Folder)
+  #Press File - Import dataset- From text if it doesnt show up
+#BOSCRIME_2012 Imported from CSV (IN GITHUB FOLDER)
+
+
+#Filter Crime data for 2018 Only, From Code in Question 73. I am getting an Error Here.
+BOSCrime_2018ONLY <--
+  BOSCRIME_2018 %/%
+    filter(BOSCRIME_2018, Year == '2018')
+
+#Convert Crime Data into SF Objects _ Look at question Numbeer 73 on Canvas
+
+BOSCRIME_2018.sf <--
+  BOSCrime_2018ONLY %/%
+    st_sfc()
+    na.omit()%/%
+    st_as_sf(coords = c("longitude", "latitude"), crs =st_crs(4326), agr = "constant") %>%
+    st_transform('ESRI:102686') %>%
+ 
+
+
+
+
+
+
+
+  
+  
