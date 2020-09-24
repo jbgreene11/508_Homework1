@@ -366,20 +366,21 @@ allTracts.Summary %>%
 
 #---GraduatedSymbolMap----
 
-#Graduated Symbol Map for Total Population
+#Graduated Symbol Map for Total Population 
+#JG NOTE: This is what I was asking Ken about in Office Hours, hes said he answered another question about this on piazza.
 
 MBTASTOPS_SCALED = MBTASTOPS_CUT
   mutate (PopPerStop = 
 
 ggplot() + 
   geom_sf(data= st_union(tracts12B), fill="black") +
-  geom_sf(data= MBTASTOPS_CUT, aes(size = "Totalpop.inf"), colour="red")
+  geom_sf(data= MBTASTOPS_CUT, aes(size = ), colour="red")
 
 #Graduated Symbol Map for Median Rent
 
 ggplot() + 
   geom_sf(data= st_union(tracts12B), fill="black") +
-  geom_sf(data.frame= MBTASTOPS_CUT, aes(size = "Medianrent.inf"), colour="red")
+  geom_sf(data.frame= MBTASTOPS_CUT, aes(size = ), colour="red")
 
 #I feel like we need to make Median Rent a variable in the MBTACut dataframe?
 
@@ -504,9 +505,9 @@ geom_line(
   orientation = NA,
   show.legend = NA,
   inherit.aes = TRUE,
-
-
-
+  
+  
+  #see question 76 for Info on this.
 
 
   
@@ -518,23 +519,38 @@ geom_line(
   #Press File - Import dataset- From text if it doesnt show up
 #BOSCRIME_2012 Imported from CSV (IN GITHUB FOLDER)
 
+#Filter Crime data for 2012 Only, From Code in Question 73. I am getting an Error Here.
+BOSCRIME_2012ONLY <--
+  BOSCRIME_2012 %/%
+  filter(BOSCRIME_2012, Year == '2012',)
 
 #Filter Crime data for 2018 Only, From Code in Question 73. I am getting an Error Here.
-BOSCrime_2018ONLY <--
+BOSCRIME_2018ONLY <--
   BOSCRIME_2018 %/%
-    filter(BOSCRIME_2018, Year == '2018')
+    filter(BOSCRIME_2018, Year == '2018',)
 
-#Convert Crime Data into SF Objects _ Look at question Numbeer 73 on Canvas
+#Convert Crime Data into SF Objects _ Look at question Number 73 on Canvas. This doesnt work for me either UGH
+
+BOSCRIME_2012SF <--
+  BOSCRIME_2012 [1:100,] %/% #trying to just take the first 100 lines if it's too big. per question 73
+  na.omit()%/%
+  st_as_sf(coords = c("longitude", "latitude"), crs =st_crs(4326), agr = "constant") %>%
+  st_transform('ESRI:102686') %>%
+
+#Convert Crime Data 2018  into SF Objects _ Look at question Number 73 on Canvas. This doesnt work for me either UGH
 
 BOSCRIME_2018.sf <--
-  BOSCrime_2018ONLY %/%
-    st_sfc()
+  BOSCRIME_2018 %/%
     na.omit()%/%
     st_as_sf(coords = c("longitude", "latitude"), crs =st_crs(4326), agr = "constant") %>%
     st_transform('ESRI:102686') %>%
  
-
-
+#Tracts SF objects should still work, but otherwise we can call them again here
+      
+      
+#Plot overlay of crime on Tracts - Per question 73
+      
+ggplot()+geom_sf((data=tracts12B))+geom_sf(data=BOSCRIME_2018.sf)
 
 
 
