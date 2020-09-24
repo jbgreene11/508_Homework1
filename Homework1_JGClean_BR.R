@@ -544,30 +544,45 @@ geom_line(
 #BOSCRIME_2012 Imported from CSV (IN GITHUB FOLDER)
 
 #Filter Crime data for 2012 Only, From Code in Question 73. I am getting an Error Here.
-BOSCRIME_2012ONLY <--
-  BOSCRIME_2012 %/%
-  filter(BOSCRIME_2012, Year == '2012',)
+#BOSCRIME_2012ONLY = BOSCRIME_2012 [-c(43229:268056),]
 
 #Filter Crime data for 2018 Only, From Code in Question 73. I am getting an Error Here.
-BOSCRIME_2018ONLY <--
-  BOSCRIME_2018 %/%
-    filter(BOSCRIME_2018, Year == '2018',)
+#BOSCRIME_2018ONLY = BOSCRIME_2018 [-c(1:74219, 172486:426839), ]
 
-#Convert Crime Data into SF Objects _ Look at question Number 73 on Canvas. This doesnt work for me either UGH
+#Imported CRime data 12 and 18 from CSV
 
-BOSCRIME_2012SF <--
-  BOSCRIME_2012 [1:100,] %/% #trying to just take the first 100 lines if it's too big. per question 73
-  na.omit()%/%
-  st_as_sf(coords = c("longitude", "latitude"), crs =st_crs(4326), agr = "constant") %>%
-  st_transform('ESRI:102686') %>%
+#Removed entry with irregular Lat, LON
 
-#Convert Crime Data 2018  into SF Objects _ Look at question Number 73 on Canvas. This doesnt work for me either UGH
+CRIME18E = CRIME18 [-c(405), ]
 
-BOSCRIME_2018.sf <--
-  BOSCRIME_2018 %/%
-    na.omit()%/%
-    st_as_sf(coords = c("longitude", "latitude"), crs =st_crs(4326), agr = "constant") %>%
-    st_transform('ESRI:102686') %>%
+#Attempt to fix the coordinate system 1
+    
+CRIME2012.SF <-
+    st_as_sf(CRIME12, coords = c("LAT", "LON"), crs = 4326, agr = "constant") %>%
+    st_transform(st_crs(allTracts.group))
+
+CRIME2018.SF <-
+  st_as_sf(CRIME18E, coords = c("LAT", "LON"), crs = 4326, agr = "constant") %>%
+  st_transform(st_crs(allTracts.group))
+
+#Attempt to fix the coordinate system 2
+
+CRIME2012.SF <-
+  st_as_sf(CRIME12, coords = c("LAT", "LON"), crs=st_crs(4326), agr = "constant") %>%
+  st_transform('ESRI:102728',)
+
+CRIME2018.SF <-
+  st_as_sf(CRIME18E, coords = c("LAT", "LON"), crs=st_crs(4326), agr = "constant") %>%
+  st_transform('ESRI:102728',)
+
+#plot the overlay
+ggplot() + 
+  geom_sf(data=tracts12B)  
+  geom_sf(data=CRIME2012.SF)
+
+ggplot() + 
+  geom_sf(data=tracts12B)  
+  geom_sf(data=CRIME2018.SF)
  
 #Tracts SF objects should still work, but otherwise we can call them again here
       
