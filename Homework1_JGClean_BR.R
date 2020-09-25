@@ -577,14 +577,23 @@ ggplot() +
   geom_sf(data=CRIME2018.SF)
   labs(title = "Incidences of Theft in Boston 2018", caption = "Figure 6.2")
  
-#Tracts SF objects should still work, but otherwise we can call them again here
-      
-      
-#Plot overlay of crime on Tracts - Per question 73
-      
-ggplot()+geom_sf((data=tracts12B))+geom_sf(data=BOSCRIME_2018.sf)
+#Plot Crime data and Median Rent 2012
 
+  ggplot(allTracts.group)+
+    geom_sf(data = st_union(tracts12B))+
+   # geom_sf(data= CRIME2012.SF, color = "red")
+    geom_sf(aes(fill = q5(MedRent))) +
+    geom_sf(data = buffer, fill = "transparent", color = "red", size = 1) +
+    scale_fill_manual(values = palette5,
+                      labels = qBr(allTracts.group, "MedRent"),
+                      name = "Percent White\n(Quintile Breaks)") +
+    labs(title = "Median Rent \n (Quintile Breaks", subtitle = "$", caption = "Figure 6.3") +
+    #facet_wrap(~year)+
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
 
+  
+  
 
 
 

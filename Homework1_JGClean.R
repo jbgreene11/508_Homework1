@@ -546,11 +546,69 @@ BOSCRIME_2018.sf <--
     st_transform('ESRI:102686') %>%
  
 #Tracts SF objects should still work, but otherwise we can call them again here
+
+  
+  ##### ------START HERE
       
-      
-#Plot overlay of crime on Tracts - Per question 73
-      
-ggplot()+geom_sf((data=tracts12B))+geom_sf(data=BOSCRIME_2018.sf)
+  #Removed entry with irregular Lat, LON
+  
+  CRIME12MIN = CRIME12 [c(1:100),]
+CRIME18E = CRIME18 [-c(405), ]
+
+#Attempt to fix the coordinate system 2
+
+CRIME2012.SF <-
+  st_as_sf(CRIME12MIN, coords = c("LAT", "LON"), crs=st_crs(4326), agr = "constant") %>%
+  st_transform('ESRI:102728')
+
+CRIME2018.SF <-
+  st_as_sf(CRIME18E, coords = c("LAT", "LON"), crs=st_crs(4326), agr = "constant") %>%
+  st_transform('ESRI:102728')
+
+#plot the overlay
+ggplot() + 
+  geom_sf(data=tracts12B) + 
+  geom_sf(data=CRIME2012.SF) +
+  labs(title = "Incidences of Theft in Boston 2012", caption = "Figure 6.1")
+
+ggplot() + 
+  geom_sf(data=tracts12B)  
+geom_sf(data=CRIME2018.SF)
+labs(title = "Incidences of Theft in Boston 2018", caption = "Figure 6.2")
+
+#Plot Crime data and Median Rent 2012
+
+ggplot(allTracts.group)+
+  geom_sf(data = st_union(tracts12B))+
+  geom_sf(data= CRIME2012.SF, color = "red")
+geom_sf(aes(fill = q5(MedRent))) +
+  geom_sf(data = buffer, fill = "transparent", color = "red", size = 1) +
+  scale_fill_manual(values = palette5,
+                    labels = qBr(allTracts.group, "MedRent"),
+                    name = "Percent White\n(Quintile Breaks)") +
+  labs(title = "Median Rent \n (Quintile Breaks", subtitle = "$", caption = "Figure 6.3") +
+  facet_wrap(~year)+
+  mapTheme() + 
+  theme(plot.title = element_text(size=22))
+
+#Clip Crime data to TOD and NON TOD Areas
+
+CRIME_CLIP <- 
+  st_intersection(buffer, CRIME2012.SF) %>%
+  mutate(Selection_Type = "Clip") %>%
+  summarise(Total_Count = n())
+
+#Plot Crime in TOD area Non TOD area on Bar Graphs. 
+
+allTracts.Summary %>%
+  gather(Variable, Value, -year, -TOD) %>%
+  ggplot(aes(year, Value, fill = TOD)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Variable, scales = "free", ncol=5) +
+  scale_fill_manual(values = c("#bae4bc", "#0868ac")) +
+  labs(title = "Indicator differences across time and space") +
+  plotTheme() + theme(legend.position="bottom")
+
 
 
 
