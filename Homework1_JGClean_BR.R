@@ -407,132 +407,118 @@ ggplot() +
   labs(title = "Percent White 2012-2018", subtitle = "%") +
     
 
-
 #------- Multiple ring buffer---------
-square <-  
-  st_sfc(st_polygon(list(cbind(c(0,3,3,0,0),c(0,0,3,3,0))))) %>%
-  st_sf()
 
-buffers <- multipleRingBuffer(buffer, 52800, 2640)
-
-ggplot() + geom_sf(data = buffers, aes(fill = distance))
-
-# Create ring data frame
-allTracts.ring <- 
-  rbind(
-    st_centroid(allTracts)[buffers(3),] %>%
-      st_drop_geometry() %>%
-      left_join(allTracts) %>%
-      st_sf() %>%
-      mutate(Ring = "1"),
-    st_centroid(allTracts)[buffers, op = st_disjoint] %>%
-      st_drop_geometry() %>%
-      left_join(allTracts) %>%
-      st_sf() %>%
-      mutate(Ring = "Non-Rings")) %>%
-  mutate(MedRent.inf = ifelse(year == "2009", MedRent * 1.09, MedRent)) 
-
-#Create multiple ring buffer function
+MBTABufferForRing <- 
+    st_union(st_buffer(MBTASTOPS_CUT, 2640)) %>%
+    st_sf() 
+  
 multipleRingBuffer <- function(inputPolygon, maxDistance, interval) 
-{
-  #create a list of distances that we'll iterate through to create each ring
-  distances <- seq(0, maxDistance, interval)
-  #we'll start with the second value in that list - the first is '0'
-  distancesCounter <- 2
-  #total number of rings we're going to create
-  numberOfRings <- floor(maxDistance / interval)
-  #a counter of number of rings
-  numberOfRingsCounter <- 1
-  #initialize an otuput data frame (that is not an sf)
-  allRings <- data.frame()
-  
-  #while number of rings  counteris less than the specified nubmer of rings
-  while (numberOfRingsCounter <= numberOfRings) 
   {
-    #if we're interested in a negative buffer and this is the first buffer
-    #(ie. not distance = '0' in the distances list)
-    if(distances[distancesCounter] < 0 & distancesCounter == 2)
+    #create a list of distances that we'll iterate through to create each ring
+    distances <- seq(0, maxDistance, interval)
+    #we'll start with the second value in that list - the first is '0'
+    distancesCounter <- 2
+    #total number of rings we're going to create
+    numberOfRings <- floor(maxDistance / interval)
+    #a counter of number of rings
+    numberOfRingsCounter <- 1
+    #initialize an otuput data frame (that is not an sf)
+    allRings <- data.frame()
+    
+    #while number of rings  counteris less than the specified nubmer of rings
+    while (numberOfRingsCounter <= numberOfRings) 
     {
-      #buffer the input by the first distance
-      buffer1 <- st_buffer(inputPolygon, distances[distancesCounter])
-      #different that buffer from the input polygon to get the first ring
-      buffer1_ <- st_difference(inputPolygon, buffer1)
-      #cast this sf as a polygon geometry type
-      thisRing <- st_cast(buffer1_, "POLYGON")
-      #take the last column which is 'geometry'
-      thisRing <- as.data.frame(thisRing[,ncol(thisRing)])
-      #add a new field, 'distance' so we know how far the distance is for a give ring
-      thisRing$distance <- distances[distancesCounter]
+      #if we're interested in a negative buffer and this is the first buffer
+      #(ie. not distance = '0' in the distances list)
+      if(distances[distancesCounter] < 0 & distancesCounter == 2)
+      {
+        #buffer the input by the first distance
+        buffer1 <- st_buffer(inputPolygon, distances[distancesCounter])
+        #different that buffer from the input polygon to get the first ring
+        buffer1_ <- st_difference(inputPolygon, buffer1)
+        #cast this sf as a polygon geometry type
+        thisRing <- st_cast(buffer1_, "POLYGON")
+        #take the last column which is 'geometry'
+        thisRing <- as.data.frame(thisRing[,ncol(thisRing)])
+        #add a new field, 'distance' so we know how far the distance is for a give ring
+        thisRing$distance <- distances[distancesCounter]
+      }
+      
+      
+      #otherwise, if this is the second or more ring (and a negative buffer)
+      else if(distances[distancesCounter] < 0 & distancesCounter > 2) 
+      {
+        #buffer by a specific distance
+        buffer1 <- st_buffer(inputPolygon, distances[distancesCounter])
+        #create the next smallest buffer
+        buffer2 <- st_buffer(inputPolygon, distances[distancesCounter-1])
+        #This can then be used to difference out a buffer running from 660 to 1320
+        #This works because differencing 1320ft by 660ft = a buffer between 660 & 1320.
+        #bc the area after 660ft in buffer2 = NA.
+        thisRing <- st_difference(buffer2,buffer1)
+        #cast as apolygon
+        thisRing <- st_cast(thisRing, "POLYGON")
+        #get the last field
+        thisRing <- as.data.frame(thisRing$geometry)
+        #create the distance field
+        thisRing$distance <- distances[distancesCounter]
+      }
+      
+      #Otherwise, if its a positive buffer
+      else 
+      {
+        #Create a positive buffer
+        buffer1 <- st_buffer(inputPolygon, distances[distancesCounter])
+        #create a positive buffer that is one distance smaller. So if its the first buffer
+        #distance, buffer1_ will = 0. 
+        buffer1_ <- st_buffer(inputPolygon, distances[distancesCounter-1])
+        #difference the two buffers
+        thisRing <- st_difference(buffer1,buffer1_)
+        #cast as a polygon
+        thisRing <- st_cast(thisRing, "POLYGON")
+        #geometry column as a data frame
+        thisRing <- as.data.frame(thisRing[,ncol(thisRing)])
+        #add teh distance
+        thisRing$distance <- distances[distancesCounter]
+      }  
+      
+      #rbind this ring to the rest of the rings
+      allRings <- rbind(allRings, thisRing)
+      #iterate the distance counter
+      distancesCounter <- distancesCounter + 1
+      #iterate the number of rings counter
+      numberOfRingsCounter <- numberOfRingsCounter + 1
     }
     
-    
-    #otherwise, if this is the second or more ring (and a negative buffer)
-    else if(distances[distancesCounter] < 0 & distancesCounter > 2) 
-    {
-      #buffer by a specific distance
-      buffer1 <- st_buffer(inputPolygon, distances[distancesCounter])
-      #create the next smallest buffer
-      buffer2 <- st_buffer(inputPolygon, distances[distancesCounter-1])
-      #This can then be used to difference out a buffer running from 660 to 1320
-      #This works because differencing 1320ft by 660ft = a buffer between 660 & 1320.
-      #bc the area after 660ft in buffer2 = NA.
-      thisRing <- st_difference(buffer2,buffer1)
-      #cast as apolygon
-      thisRing <- st_cast(thisRing, "POLYGON")
-      #get the last field
-      thisRing <- as.data.frame(thisRing$geometry)
-      #create the distance field
-      thisRing$distance <- distances[distancesCounter]
-    }
-    
-    #Otherwise, if its a positive buffer
-    else 
-    {
-      #Create a positive buffer
-      buffer1 <- st_buffer(inputPolygon, distances[distancesCounter])
-      #create a positive buffer that is one distance smaller. So if its the first buffer
-      #distance, buffer1_ will = 0. 
-      buffer1_ <- st_buffer(inputPolygon, distances[distancesCounter-1])
-      #difference the two buffers
-      thisRing <- st_difference(buffer1,buffer1_)
-      #cast as a polygon
-      thisRing <- st_cast(thisRing, "POLYGON")
-      #geometry column as a data frame
-      thisRing <- as.data.frame(thisRing[,ncol(thisRing)])
-      #add teh distance
-      thisRing$distance <- distances[distancesCounter]
-    }  
-    
-    #rbind this ring to the rest of the rings
-    allRings <- rbind(allRings, thisRing)
-    #iterate the distance counter
-    distancesCounter <- distancesCounter + 1
-    #iterate the number of rings counter
-    numberOfRingsCounter <- numberOfRingsCounter + 1
+    #convert the allRings data frame to an sf data frame
+    allRings <- st_as_sf(allRings)
   }
-  
-  #convert the allRings data frame to an sf data frame
-  allRings <- st_as_sf(allRings)
-}
 
+# Calculate average rent in each ring
+allTracts.rings <-
+  st_join(st_centroid(dplyr::select(allTracts, GEOID, year)),
+          multipleRingBuffer(st_union(MBTASTOPS_CUT), 26400.0, 1320.0)) %>%
+  st_drop_geometry() %>%
+  left_join(dplyr::select(allTracts, GEOID, MedRent, year),
+            by=c("GEOID"="GEOID","year" = "year")) %>%
+  st_sf() %>%
+  mutate(distance = distance / 5280)
 
+allTracts.disgroup <-
+  allTracts.rings %>%
+  group_by(distance, year) %>%
+  summarise(AvgRent = mean(MedRent)) %>%
+  na.omit(allTracts.disgroup)
 
-#----plot geom line------
-
-geom_line(
-  mapping = NULL,
-  data = NULL,
-  stat = "identity",
-  position = "identity",
-  na.rm = FALSE,
-  orientation = NA,
-  show.legend = NA,
-  inherit.aes = TRUE,
-  
-  
-  #see question 76 for Info on this.
-
-  
+#Plot line graph
+ggplot(data=allTracts.disgroup,
+  aes(x = distance, y = AvgRent, color = year)) +
+  ylab('Average Rent ($)') +
+  xlab('Distance from Station (Miles)') +
+  geom_line(size = 1.25)+
+  geom_point(size = 1)+
+  ggtitle('Rent vs. Distance')
 
   
 #----CrimeDataAnalysis----
