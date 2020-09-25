@@ -553,36 +553,29 @@ geom_line(
 
 #Removed entry with irregular Lat, LON
 
+CRIME12MIN = CRIME12 [c(1:100),]
 CRIME18E = CRIME18 [-c(405), ]
-
-#Attempt to fix the coordinate system 1
-    
-CRIME2012.SF <-
-    st_as_sf(CRIME12, coords = c("LAT", "LON"), crs = 4326, agr = "constant") %>%
-    st_transform(st_crs(allTracts.group))
-
-CRIME2018.SF <-
-  st_as_sf(CRIME18E, coords = c("LAT", "LON"), crs = 4326, agr = "constant") %>%
-  st_transform(st_crs(allTracts.group))
 
 #Attempt to fix the coordinate system 2
 
 CRIME2012.SF <-
-  st_as_sf(CRIME12, coords = c("LAT", "LON"), crs=st_crs(4326), agr = "constant") %>%
-  st_transform('ESRI:102728',)
+  st_as_sf(CRIME12MIN, coords = c("LAT", "LON"), crs=st_crs(4326), agr = "constant") %>%
+  st_transform('ESRI:102728')
 
 CRIME2018.SF <-
   st_as_sf(CRIME18E, coords = c("LAT", "LON"), crs=st_crs(4326), agr = "constant") %>%
-  st_transform('ESRI:102728',)
+  st_transform('ESRI:102728')
 
 #plot the overlay
 ggplot() + 
-  geom_sf(data=tracts12B)  
-  geom_sf(data=CRIME2012.SF)
-
+  geom_sf(data=tracts12B) + 
+  geom_sf(data=CRIME2012.SF) +
+  labs(title = "Incidences of Theft in Boston 2012", caption = "Figure 6.1")
+  
 ggplot() + 
   geom_sf(data=tracts12B)  
   geom_sf(data=CRIME2018.SF)
+  labs(title = "Incidences of Theft in Boston 2018", caption = "Figure 6.2")
  
 #Tracts SF objects should still work, but otherwise we can call them again here
       
